@@ -95,11 +95,12 @@ void A0::uploadTriangleDataToVbo()
 	float half_sqrt3 = float(std::sqrt(3.0)) * 0.5f;
 	vec3 triangleVertices[] = {
 		// Construct equalaterial triangle
-		vec3(0.25f, 0.0f, 0.0f),
+		vec3(0.0f, 0.0f, 0.0f),
 		vec3(0.25f, half_sqrt3 * 0.5f, 0.0),
 		vec3(0.5f, 0.0f, 0.0f)
 	};
 
+    
 	// Construct triangle centroid and move vertices so triangle is centered at origin
 	vec3 centroid(0.0f);
 	for(const vec3 & v : triangleVertices) {

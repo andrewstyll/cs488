@@ -31,6 +31,7 @@ protected:
 
 private:
 	void initGrid();
+    void initMaze();
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
@@ -46,6 +47,9 @@ private:
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;
 	glm::mat4 view;
+
+    // Fields related to cube geometry
+    GLuint m_cube_ibo;
 
 	float colour[3];
 	int current_col;

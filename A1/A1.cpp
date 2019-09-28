@@ -46,13 +46,6 @@ void A1::init()
 	// same random numbers
 	cout << "Random number seed = " << rseed << endl;
 	
-
-	// DELETE FROM HERE...
-	Maze m(DIM);
-	m.digMaze();
-	m.printMaze();
-	// ...TO HERE
-	
 	// Set the background colour.
 	glClearColor( 0.3, 0.5, 0.7, 1.0 );
 
@@ -70,6 +63,8 @@ void A1::init()
 	M_uni = m_shader.getUniformLocation( "M" );
 	col_uni = m_shader.getUniformLocation( "colour" );
 
+    initMaze();
+
 	initGrid();
 
 	// Set up initial view and projection matrices (need to do this here,
@@ -85,6 +80,66 @@ void A1::init()
 		1.0f, 1000.0f );
 }
 
+void A1::initMaze() {
+	/*
+    Maze m(DIM);
+	m.digMaze();
+	m.printMaze();
+    */
+    vec3 cubeVertices[] = {
+		vec3(-0.5f, -0.5f, -0.5f),  // Vertex 0
+		vec3(0.5f, 0.5f, -0.5f),    // Vertex 1
+		vec3(-0.5f, 0.5f, -0.5f),   // Vertex 2
+		vec3(0.5f, -0.5f, -0.5f),   // Vertex 3
+		vec3(-0.5f, -0.5f, 0.5f),   // Vertex 4
+		vec3(0.5f, 0.5f, 0.5f),     // Vertex 5
+		vec3(-0.5f, 0.5f, 0.5f),    // Vertex 6
+		vec3(0.5f, -0.5f, 0.5f)     // Vertex 7
+	};
+
+    GLushort triangleIndices[] = {
+		    0,1,2,      // Triangle 0
+		    0,1,3,      // Triangle 1
+		    3,5,1,      // Triangle 2
+		    3,5,7,      // Triangle 3
+		    7,6,4,      // Triangle 4
+		    7,6,5,      // Triangle 5
+		    4,2,6,      // Triangle 6
+		    4,2,0,      // Triangle 7
+		    0,7,3,      // Triangle 8
+		    0,7,4,      // Triangle 9
+		    2,5,1,      // Triangle 10
+		    2,5,6,      // Triangle 11
+    };
+
+	// allocate space for VAO
+    glGenVertexArrays( 1, &m_grid_vao );
+	glBindVertexArray( m_grid_vao );
+
+	// Create the cube vertex buffer
+	glGenBuffers( 1, &m_grid_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(cubeVertices),
+		cubeVertices, GL_STATIC_DRAW );
+   
+    GLint positionAttribLocation = m_shader.getAttribLocation("position");
+    glEnableVertexAttribArray(positionAttribLocation);
+	glVertexAttribPointer(positionAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    
+    // create ibo to tell vao how to access vbo buffer data
+    glBindVertexArray(m_grid_vao);
+    glGenBuffers(1, &m_cube_ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cube_ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices,
+            GL_STATIC_DRAW);
+	
+    glBindVertexArray(0);
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+	
+    CHECK_GL_ERRORS;
+}
+
 void A1::initGrid()
 {
 	size_t sz = 3 * 2 * 2 * (DIM+3);
@@ -92,7 +147,7 @@ void A1::initGrid()
 	float *verts = new float[ sz ];
 	size_t ct = 0;
 	for( int idx = 0; idx < DIM+3; ++idx ) {
-		verts[ ct ] = -1;
+        verts[ ct ] = -1;
 		verts[ ct+1 ] = 0;
 		verts[ ct+2 ] = idx-1;
 		verts[ ct+3 ] = DIM+1;
@@ -106,8 +161,9 @@ void A1::initGrid()
 		verts[ ct+3 ] = idx-1;
 		verts[ ct+4 ] = 0;
 		verts[ ct+5 ] = DIM+1;
-		ct += 6;
-	}
+        ct += 6;
+  
+    }
 
 	// Create the vertex array to record buffer assignments.
 	glGenVertexArrays( 1, &m_grid_vao );
@@ -224,7 +280,9 @@ void A1::draw()
 		glBindVertexArray( m_grid_vao );
 		glUniform3f( col_uni, 1, 1, 1 );
 		glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
-
+        
+        const GLsizei numIndices = 36;
+		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, nullptr);
 		// Draw the cubes
 		// Highlight the active square.
 	m_shader.disable();
