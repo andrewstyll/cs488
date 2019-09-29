@@ -32,6 +32,9 @@ protected:
 private:
 	void initGrid();
     void initMaze();
+    void initTiles();
+    void initWalls();
+
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
@@ -41,16 +44,17 @@ private:
 	GLint col_uni;   // Uniform location for cube colour.
 
 	// Fields related to grid geometry.
-	GLuint m_grid_vao; // Vertex Array Object
-	GLuint m_grid_vbo; // Vertex Buffer Object
+	GLuint m_maze_vao; // Vertex Array Object
+	GLuint m_tile_vbo; // Vertex Buffer Object
+
+    GLuint m_tile_ibo; // Index Buffer Object
 
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;
 	glm::mat4 view;
 
-    // Fields related to cube geometry
-    GLuint m_cube_ibo;
-
 	float colour[3];
 	int current_col;
+
+    Maze *m;
 };
