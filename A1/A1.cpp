@@ -26,6 +26,7 @@ A1::A1()
 	colour[0] = 0.0f;
 	colour[1] = 0.0f;
 	colour[2] = 0.0f;
+    m_cube_height = 1.0f;
     m = new Maze(DIM);
 }
 
@@ -151,34 +152,63 @@ void A1::initMaze() {
     */
 }
 
+void A1::buildCubeIndices(int i, int j, int index, GLushort *array) {
+    
+    GLushort zero = i*(DIM+3) + j;
+    GLushort one = i*(DIM+3) + (j+1);
+    GLushort two = (i+1)*(DIM+3) + j;
+    GLushort three = (i+1)*(DIM+3) + (j+1);
+    
+    GLushort four = i*(DIM+3) + j + ((DIM+3) * (DIM+3));
+    GLushort five = i*(DIM+3) + (j+1) + ((DIM+3) * (DIM+3));
+    GLushort six = (i+1)*(DIM+3) + j + ((DIM+3) * (DIM+3));
+    GLushort seven = (i+1)*(DIM+3) + (j+1) + ((DIM+3) * (DIM+3));
+    
+    GLushort cubeMapping[] = {
+        one,    two,    zero,      // Triangle 0
+        one,    two,    three,      // Triangle 1
+        five,   six,    four,      // Triangle 2
+        five,   six,    seven,      // Triangle 3
+        six,    zero,   four,      // Triangle 4
+        six,    zero,   two,      // Triangle 5
+        seven,  two,    six,      // Triangle 6
+        seven,  two,    three,      // Triangle 7
+        five,   three,  seven,      // Triangle 8
+        five,   three,  one,      // Triangle 9
+        four,   one,    five,      // Triangle 10
+        four,   one,    zero,      // Triangle 11
+    };
+    
+    for(int it = 0; it < 36; it++) {
+        array[index+it] = cubeMapping[it];
+    }
+}
+
 void A1::initTiles() {
 	
-    size_t numVerts = (DIM+3) * (DIM+3);
-    size_t numTriangles = 2 * 3* (DIM+2) * (DIM+2); // (DIM+2)^2 squares with 2 triangles in each with 3 verts per triangle
+    size_t numVerts = (DIM+3) * (DIM+3) * 2; // one for the top of a cube, the other for the bottom
+    size_t numTriangles = (DIM+2) * (DIM+2) * 6 * 2 * 3; // (DIM+2)^2 "cubes", 6 faces per square, 2 triangles per face, 3 verts per triangle
 
 	vec3 *verts = new vec3[ numVerts ];
     GLushort *triangleIndices = new GLushort[numTriangles];
-    
+   
     size_t vertCount = 0;
     size_t idcCount = 0;
     for(int i = 0; i < DIM+3; i++) {
         for(int j = 0; j < DIM+3; j++) {
-            verts[vertCount] = vec3(j, 0, i);
-            vertCount+=1;
-        
-            if(i < DIM+2 && j < DIM+2) {
-                triangleIndices[idcCount] = i*(DIM+3) + j;
-                triangleIndices[idcCount+1] = i*(DIM+3) + (j+1);
-                triangleIndices[idcCount+2] = (i+1)*(DIM+3) + j;
-                cout << triangleIndices[idcCount] << "," << triangleIndices[idcCount+1] << "," << triangleIndices[idcCount+2] << ":";
-                idcCount += 3;
-                
-                triangleIndices[idcCount] = (i+1)*(DIM+3) + (j+1);
-                triangleIndices[idcCount+1] = i*(DIM+3) + (j+1);
-                triangleIndices[idcCount+2] = (i+1)*(DIM+3) + j;
-                cout << triangleIndices[idcCount] << "," << triangleIndices[idcCount+1] << "," << triangleIndices[idcCount+2] << "\n";
-                idcCount += 3;
+            float height = m_cube_height;
+            if(m->getValue(i, j) == 0) {
+                height = 0.0f;
             }
+            verts[vertCount] = vec3(j, 0, i);
+            verts[vertCount + ((DIM+3) * (DIM+3))] = vec3(j, height, i);
+            vertCount+=1;
+            
+            if(i < DIM+2 && j < DIM+2) {
+                buildCubeIndices(i, j, idcCount, triangleIndices);
+                idcCount += 36;
+            }
+            
         }
     }
 
@@ -186,7 +216,8 @@ void A1::initTiles() {
     glGenBuffers( 1, &m_tile_vbo );
 	glBindBuffer( GL_ARRAY_BUFFER, m_tile_vbo );
 	glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec3),
-		verts, GL_STATIC_DRAW );
+		verts, GL_DYNAMIC_DRAW );  
+
     
     glBindVertexArray(m_maze_vao);
     glGenBuffers(1, &m_tile_ibo);
@@ -351,7 +382,7 @@ void A1::draw()
 		//glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
        
 		//glDrawArrays( GL_LINES, 0, (DIM+3) * (DIM+3) );
-        const GLsizei numIndices = 2 * 3* (DIM+2) * (DIM+2);
+        const GLsizei numIndices = (DIM+2) * (DIM+2) * 6 * 2 * 3;
         //glDrawArrays( GL_TRIANGLES, 0, numIndices);
 		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, nullptr);
 		// Draw the cubes

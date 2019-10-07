@@ -33,6 +33,7 @@ private:
 	void initGrid();
     void initMaze();
     void initTiles();
+    void buildCubeIndices(int , int , int, GLushort *);
     void initWalls();
 
 
@@ -57,4 +58,5 @@ private:
 	int current_col;
 
     Maze *m;
+    float m_cube_height;
 };
