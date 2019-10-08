@@ -33,7 +33,9 @@ private:
 	void initGrid();
     void initMaze();
     void initTiles();
-    void buildCubeIndices(int , int , int, GLushort *);
+    bool isOutOfRange(int , int );
+    void buildCubeIndices(int, int, int, glm::vec3 *);
+    void buildCubeColorIndicies(int, int, int, glm::vec3 *);
     void initWalls();
 
 
@@ -47,8 +49,7 @@ private:
 	// Fields related to grid geometry.
 	GLuint m_maze_vao; // Vertex Array Object
 	GLuint m_tile_vbo; // Vertex Buffer Object
-
-    GLuint m_tile_ibo; // Index Buffer Object
+    GLuint m_colors_vbo; // Vertex Buffer Object
 
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;
@@ -59,4 +60,6 @@ private:
 
     Maze *m;
     float m_cube_height;
+	glm::vec3 m_cube_color;
+	glm::vec3 m_tile_color;
 };

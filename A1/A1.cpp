@@ -21,12 +21,14 @@ static const size_t DIM = 16;
 //----------------------------------------------------------------------------------------
 // Constructor
 A1::A1()
-	: current_col( 0 )
+	: current_col( 0 ),
+    m_cube_height(1.0f),
+    m_cube_color(glm::vec3(1.0f, 1.0f, 1.0f)),
+    m_tile_color(glm::vec3(0.0f, 0.0f, 0.0f))
 {
 	colour[0] = 0.0f;
 	colour[1] = 0.0f;
 	colour[2] = 0.0f;
-    m_cube_height = 1.0f;
     m = new Maze(DIM);
 }
 
@@ -63,7 +65,7 @@ void A1::init()
 	P_uni = m_shader.getUniformLocation( "P" );
 	V_uni = m_shader.getUniformLocation( "V" );
 	M_uni = m_shader.getUniformLocation( "M" );
-	col_uni = m_shader.getUniformLocation( "colour" );
+	//col_uni = m_shader.getUniformLocation( "colour" );
 
     initMaze();
 
@@ -95,76 +97,48 @@ void A1::initMaze() {
     GLint positionAttribLocation = m_shader.getAttribLocation("position");
     glEnableVertexAttribArray(positionAttribLocation);
     
+    GLint colorAttribLocation = m_shader.getAttribLocation("color");
+    glEnableVertexAttribArray(colorAttribLocation);
+
     glBindVertexArray( 0 );
      
     initTiles();
-
-
-    /*
-    vec3 cubeVertices[] = {
-		vec3(-0.5f, -0.5f, -0.5f),  // Vertex 0
-		vec3(0.5f, 0.5f, -0.5f),    // Vertex 1
-		vec3(-0.5f, 0.5f, -0.5f),   // Vertex 2
-		vec3(0.5f, -0.5f, -0.5f),   // Vertex 3
-		vec3(-0.5f, -0.5f, 0.5f),   // Vertex 4
-		vec3(0.5f, 0.5f, 0.5f),     // Vertex 5
-		vec3(-0.5f, 0.5f, 0.5f),    // Vertex 6
-		vec3(0.5f, -0.5f, 0.5f)     // Vertex 7
-	};
-
-    GLushort triangleIndices[] = {
-		    0,1,2,      // Triangle 0
-		    0,1,3,      // Triangle 1
-		    3,5,1,      // Triangle 2
-		    3,5,7,      // Triangle 3
-		    7,6,4,      // Triangle 4
-		    7,6,5,      // Triangle 5
-		    4,2,6,      // Triangle 6
-		    4,2,0,      // Triangle 7
-		    0,7,3,      // Triangle 8
-		    0,7,4,      // Triangle 9
-		    2,5,1,      // Triangle 10
-		    2,5,6,      // Triangle 11
-    };
-
-
-	// Create the cube vertex buffer
-	glGenBuffers( 1, &m_grid_vbo );
-	glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(cubeVertices),
-		cubeVertices, GL_STATIC_DRAW );
-   
-    GLint positionAttribLocation = m_shader.getAttribLocation("position");
-    glEnableVertexAttribArray(positionAttribLocation);
-    
-    // create ibo to tell vao how to access vbo buffer data
-    glBindVertexArray(m_maze_vao);
-    glGenBuffers(1, &m_cube_ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cube_ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices,
-            GL_STATIC_DRAW);
-	
-    glBindVertexArray(0);
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-	
-    CHECK_GL_ERRORS;
-    */
 }
 
-void A1::buildCubeIndices(int i, int j, int index, GLushort *array) {
+bool A1::isOutOfRange(int i, int j) {
+    return (i < 0 || i >= DIM || j < 0 || j >= DIM);
+}
+
+void A1::buildCubeIndices(int i, int j, int index, vec3 *array) {
     
-    GLushort zero = i*(DIM+3) + j;
-    GLushort one = i*(DIM+3) + (j+1);
-    GLushort two = (i+1)*(DIM+3) + j;
-    GLushort three = (i+1)*(DIM+3) + (j+1);
+    float height = m_cube_height;
+    if(!isOutOfRange(i, j) && m->getValue(i, j) == 0) {
+        height = 0.0f;
+    }
     
-    GLushort four = i*(DIM+3) + j + ((DIM+3) * (DIM+3));
-    GLushort five = i*(DIM+3) + (j+1) + ((DIM+3) * (DIM+3));
-    GLushort six = (i+1)*(DIM+3) + j + ((DIM+3) * (DIM+3));
-    GLushort seven = (i+1)*(DIM+3) + (j+1) + ((DIM+3) * (DIM+3));
+    vec3 zero = vec3(j, 0, i);
+    vec3 one = vec3(j, 0, i+1);
+    vec3 two = vec3(j+1, 0, i);
+    vec3 three = vec3(j+1, 0, i+1);
     
-    GLushort cubeMapping[] = {
+    vec3 four = vec3(j, height, i);
+    vec3 five = vec3(j, height, i+1);
+    vec3 six = vec3(j+1, height, i);
+    vec3 seven = vec3(j+1, height, i+1);
+    /*
+
+    vec3 zero = vec3(i, 0, j);
+    vec3 one = vec3(i, 0, j+1);
+    vec3 two = vec3(i+1, 0, j);
+    vec3 three = vec3(i+1, 0, j+1);
+    
+    vec3 four = vec3(i, height, j);
+    vec3 five = vec3(i, height, j+1);
+    vec3 six = vec3(i+1, height, j);
+    vec3 seven = vec3(i+1, height, j+1);
+    */
+
+    vec3 cubeMapping[] = {
         one,    two,    zero,      // Triangle 0
         one,    two,    three,      // Triangle 1
         five,   six,    four,      // Triangle 2
@@ -184,56 +158,59 @@ void A1::buildCubeIndices(int i, int j, int index, GLushort *array) {
     }
 }
 
+void A1::buildCubeColorIndicies(int i, int j, int index, vec3* array) {
+    vec3 color;
+    if(isOutOfRange(i, j) || m->getValue(i, j) == 1) {
+        color = vec3(m_cube_color.r, m_cube_color.g, m_cube_color.b);
+    } else {
+        color = vec3(m_tile_color.r, m_tile_color.g, m_tile_color.b);
+    }
+    for(int it = 0; it < 36; it++) {
+        array[index+it] = color;
+    }
+}
+
 void A1::initTiles() {
 	
-    size_t numVerts = (DIM+3) * (DIM+3) * 2; // one for the top of a cube, the other for the bottom
-    size_t numTriangles = (DIM+2) * (DIM+2) * 6 * 2 * 3; // (DIM+2)^2 "cubes", 6 faces per square, 2 triangles per face, 3 verts per triangle
+    size_t numVerts = (DIM+2) * (DIM+2) * 6 * 2 * 3; // (DIM+2)^2 "cubes", 6 faces per square, 2 triangles per face, 3 verts per triangle
 
 	vec3 *verts = new vec3[ numVerts ];
-    GLushort *triangleIndices = new GLushort[numTriangles];
+    vec3 *vertColors = new vec3[ numVerts ];
    
     size_t vertCount = 0;
-    size_t idcCount = 0;
-    for(int i = 0; i < DIM+3; i++) {
-        for(int j = 0; j < DIM+3; j++) {
-            float height = m_cube_height;
-            if(m->getValue(i, j) == 0) {
-                height = 0.0f;
-            }
-            verts[vertCount] = vec3(j, 0, i);
-            verts[vertCount + ((DIM+3) * (DIM+3))] = vec3(j, height, i);
-            vertCount+=1;
-            
-            if(i < DIM+2 && j < DIM+2) {
-                buildCubeIndices(i, j, idcCount, triangleIndices);
-                idcCount += 36;
-            }
-            
+    for(int i = 0; i < DIM+2; i++) {
+        for(int j = 0; j < DIM+2; j++) {
+            buildCubeIndices(i-1, j-1, vertCount, verts); 
+            buildCubeColorIndicies(i-1, j-1, vertCount, vertColors);
+            vertCount += 36; 
         }
     }
 
 	glBindVertexArray( m_maze_vao );
+    
     glGenBuffers( 1, &m_tile_vbo );
 	glBindBuffer( GL_ARRAY_BUFFER, m_tile_vbo );
 	glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec3),
 		verts, GL_DYNAMIC_DRAW );  
 
-    
-    glBindVertexArray(m_maze_vao);
-    glGenBuffers(1, &m_tile_ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_tile_ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, numTriangles*sizeof(GLushort), 
-            triangleIndices, GL_STATIC_DRAW);
-	
     GLint positionAttribLocation = m_shader.getAttribLocation("position");
 	glVertexAttribPointer(positionAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     
+    
+    glGenBuffers( 1, &m_colors_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_colors_vbo );
+	glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec3),
+		vertColors, GL_DYNAMIC_DRAW ); 
+
+    GLint colorAttribLocation = m_shader.getAttribLocation("color");
+	glVertexAttribPointer(colorAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
     glBindVertexArray(0);
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 	
     delete[] verts;
-    delete[] triangleIndices;
+    delete[] vertColors;
     
     CHECK_GL_ERRORS;
 }
@@ -332,10 +309,12 @@ void A1::guiLogic()
 		// Prefixing a widget name with "##" keeps it from being
 		// displayed.
 
+
 		ImGui::PushID( 0 );
-		ImGui::ColorEdit3( "##Colour", colour );
+
+		ImGui::ColorEdit3( "Colour", colour );
 		ImGui::SameLine();
-		if( ImGui::RadioButton( "##Col", &current_col, 0 ) ) {
+		if( ImGui::RadioButton( "Col", &current_col, 0 ) ) {
 			// Select this colour.
 		}
 		ImGui::PopID();
@@ -378,13 +357,10 @@ void A1::draw()
 
 		// Just draw the grid for now.
 		glBindVertexArray( m_maze_vao );
-		glUniform3f( col_uni, 1, 1, 1 );
-		//glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
+		//glUniform3f( col_uni, 1, 1, 1 );
        
-		//glDrawArrays( GL_LINES, 0, (DIM+3) * (DIM+3) );
         const GLsizei numIndices = (DIM+2) * (DIM+2) * 6 * 2 * 3;
-        //glDrawArrays( GL_TRIANGLES, 0, numIndices);
-		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, nullptr);
+		glDrawArrays(GL_TRIANGLES, 0, numIndices);
 		// Draw the cubes
 		// Highlight the active square.
 	m_shader.disable();
