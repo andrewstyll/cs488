@@ -24,7 +24,8 @@ A1::A1()
 	: current_col( 0 ),
     m_cube_height(1.0f),
     m_cube_color(glm::vec3(1.0f, 1.0f, 1.0f)),
-    m_tile_color(glm::vec3(0.0f, 0.0f, 0.0f))
+    m_tile_color(glm::vec3(0.0f, 0.0f, 0.0f)),
+    m_cube_set_height(1.0f)
 {
 	colour[0] = 0.0f;
 	colour[1] = 0.0f;
@@ -100,9 +101,12 @@ void A1::initMaze() {
     GLint colorAttribLocation = m_shader.getAttribLocation("color");
     glEnableVertexAttribArray(colorAttribLocation);
 
+    glGenBuffers( 1, &m_tile_vbo );
+    glGenBuffers( 1, &m_colors_vbo );
+    
     glBindVertexArray( 0 );
      
-    initTiles();
+    buildTileBuffers();
 }
 
 bool A1::isOutOfRange(int i, int j) {
@@ -125,19 +129,7 @@ void A1::buildCubeIndices(int i, int j, int index, vec3 *array) {
     vec3 five = vec3(j, height, i+1);
     vec3 six = vec3(j+1, height, i);
     vec3 seven = vec3(j+1, height, i+1);
-    /*
-
-    vec3 zero = vec3(i, 0, j);
-    vec3 one = vec3(i, 0, j+1);
-    vec3 two = vec3(i+1, 0, j);
-    vec3 three = vec3(i+1, 0, j+1);
     
-    vec3 four = vec3(i, height, j);
-    vec3 five = vec3(i, height, j+1);
-    vec3 six = vec3(i+1, height, j);
-    vec3 seven = vec3(i+1, height, j+1);
-    */
-
     vec3 cubeMapping[] = {
         one,    two,    zero,      // Triangle 0
         one,    two,    three,      // Triangle 1
@@ -170,7 +162,7 @@ void A1::buildCubeColorIndicies(int i, int j, int index, vec3* array) {
     }
 }
 
-void A1::initTiles() {
+void A1::buildTileBuffers() {
 	
     size_t numVerts = (DIM+2) * (DIM+2) * 6 * 2 * 3; // (DIM+2)^2 "cubes", 6 faces per square, 2 triangles per face, 3 verts per triangle
 
@@ -188,7 +180,6 @@ void A1::initTiles() {
 
 	glBindVertexArray( m_maze_vao );
     
-    glGenBuffers( 1, &m_tile_vbo );
 	glBindBuffer( GL_ARRAY_BUFFER, m_tile_vbo );
 	glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec3),
 		verts, GL_DYNAMIC_DRAW );  
@@ -196,8 +187,6 @@ void A1::initTiles() {
     GLint positionAttribLocation = m_shader.getAttribLocation("position");
 	glVertexAttribPointer(positionAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     
-    
-    glGenBuffers( 1, &m_colors_vbo );
 	glBindBuffer( GL_ARRAY_BUFFER, m_colors_vbo );
 	glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec3),
 		vertColors, GL_DYNAMIC_DRAW ); 
@@ -215,59 +204,14 @@ void A1::initTiles() {
     CHECK_GL_ERRORS;
 }
 
-/*
-void A1::initGrid()
-{
-	size_t sz = 3 * 2 * 2 * (DIM+3);
-
-	float *verts = new float[ sz ];
-	size_t ct = 0;
-	for( int idx = 0; idx < DIM+3; ++idx ) {
-        verts[ ct ] = -1;
-		verts[ ct+1 ] = 0;
-		verts[ ct+2 ] = idx-1;
-		verts[ ct+3 ] = DIM+1;
-		verts[ ct+4 ] = 0;
-		verts[ ct+5 ] = idx-1;
-		ct += 6;
-
-		verts[ ct ] = idx-1;
-		verts[ ct+1 ] = 0;
-		verts[ ct+2 ] = -1;
-		verts[ ct+3 ] = idx-1;
-		verts[ ct+4 ] = 0;
-		verts[ ct+5 ] = DIM+1;
-        ct += 6;
-  
+void A1::updateHeight(bool upHeight) {
+    if(upHeight) {
+        m_cube_set_height += 1.0f;
+    } else {
+        m_cube_set_height -= 1.0f;
     }
-
-	// Create the vertex array to record buffer assignments.
-	glGenVertexArrays( 1, &m_maze_vao );
-	glBindVertexArray( m_maze_vao );
-
-	// Create the cube vertex buffer
-	glGenBuffers( 1, &m_grid_vbo );
-	glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
-	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
-		verts, GL_STATIC_DRAW );
-
-	// Specify the means of extracting the position values properly.
-	GLint posAttrib = m_shader.getAttribLocation( "position" );
-	glEnableVertexAttribArray( posAttrib );
-	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
-
-	// Reset state to prevent rogue code from messing with *my* 
-	// stuff!
-	glBindVertexArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-
-	// OpenGL has the buffer now, there's no need for us to keep a copy.
-	delete [] verts;
-
-	CHECK_GL_ERRORS;
+    m_cube_set_height = glm::clamp(m_cube_set_height, 1.0f, 3.0f);
 }
-*/
 
 //----------------------------------------------------------------------------------------
 /*
@@ -276,6 +220,11 @@ void A1::initGrid()
 void A1::appLogic()
 {
 	// Place per frame, application logic here ...
+    if(m_cube_set_height != m_cube_height) {
+        // update all cube heights
+        m_cube_height = m_cube_set_height;
+        buildTileBuffers();
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -462,6 +411,15 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 	// Fill in with event handling code...
 	if( action == GLFW_PRESS ) {
 		// Respond to some key events.
+        switch(key) {
+            case GLFW_KEY_SPACE:
+                updateHeight(true);
+                break;
+            case GLFW_KEY_BACKSPACE:
+                updateHeight(false);
+                break;
+        }
+        eventHandled = true;
 	}
 
 	return eventHandled;

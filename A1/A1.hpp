@@ -30,14 +30,12 @@ protected:
 	virtual bool keyInputEvent(int key, int action, int mods) override;
 
 private:
-	void initGrid();
     void initMaze();
-    void initTiles();
+    void buildTileBuffers();
     bool isOutOfRange(int , int );
     void buildCubeIndices(int, int, int, glm::vec3 *);
     void buildCubeColorIndicies(int, int, int, glm::vec3 *);
-    void initWalls();
-
+    void updateHeight(bool);
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
@@ -62,4 +60,8 @@ private:
     float m_cube_height;
 	glm::vec3 m_cube_color;
 	glm::vec3 m_tile_color;
+
+
+    // gameplay variables
+    float m_cube_set_height;
 };
