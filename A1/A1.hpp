@@ -58,9 +58,8 @@ private:
 
     Maze *m;
     float m_cube_height;
-	glm::vec3 m_cube_color;
-	glm::vec3 m_tile_color;
-
+    glm::vec3 m_object_colors[3];
+    std::string m_object_names[3];	
 
     // gameplay variables
     float m_cube_set_height;

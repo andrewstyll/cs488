@@ -23,14 +23,24 @@ static const size_t DIM = 16;
 A1::A1()
 	: current_col( 0 ),
     m_cube_height(1.0f),
-    m_cube_color(glm::vec3(1.0f, 1.0f, 1.0f)),
-    m_tile_color(glm::vec3(0.0f, 0.0f, 0.0f)),
     m_cube_set_height(1.0f)
 {
 	colour[0] = 0.0f;
 	colour[1] = 0.0f;
 	colour[2] = 0.0f;
     m = new Maze(DIM);
+    
+    vec3 colors[] = {
+        vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)
+    };
+    std::string names[] = {
+        "Cube", "Floor", "Player"
+    };
+
+    for(int i = 0; i < 3; i++) {
+        m_object_colors[i] = colors[i];
+        m_object_names[i] = names[i];
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -151,14 +161,12 @@ void A1::buildCubeIndices(int i, int j, int index, vec3 *array) {
 }
 
 void A1::buildCubeColorIndicies(int i, int j, int index, vec3* array) {
-    vec3 color;
-    if(isOutOfRange(i, j) || m->getValue(i, j) == 1) {
-        color = vec3(m_cube_color.r, m_cube_color.g, m_cube_color.b);
-    } else {
-        color = vec3(m_tile_color.r, m_tile_color.g, m_tile_color.b);
-    }
     for(int it = 0; it < 36; it++) {
-        array[index+it] = color;
+        if(isOutOfRange(i, j) || m->getValue(i, j) == 1) {
+            array[index+it] = m_object_colors[0];
+        } else {
+            array[index+it] = m_object_colors[1];
+        }
     }
 }
 
@@ -220,11 +228,11 @@ void A1::updateHeight(bool upHeight) {
 void A1::appLogic()
 {
 	// Place per frame, application logic here ...
-    if(m_cube_set_height != m_cube_height) {
+    //if(m_cube_set_height != m_cube_height) {
         // update all cube heights
-        m_cube_height = m_cube_set_height;
-        buildTileBuffers();
-    }
+    m_cube_height = m_cube_set_height;
+    buildTileBuffers();
+    //}
 }
 
 //----------------------------------------------------------------------------------------
@@ -257,16 +265,17 @@ void A1::guiLogic()
 
 		// Prefixing a widget name with "##" keeps it from being
 		// displayed.
+        
+        for(int i = 0; i < 3; i++) {
+            ImGui::PushID( i );
+            ImGui::RadioButton( &m_object_names[i][0], &current_col, i );
+            if(i < 2) {
+                ImGui::SameLine();
+            }
+		    ImGui::PopID();
 
-
-		ImGui::PushID( 0 );
-
-		ImGui::ColorEdit3( "Colour", colour );
-		ImGui::SameLine();
-		if( ImGui::RadioButton( "Col", &current_col, 0 ) ) {
-			// Select this colour.
-		}
-		ImGui::PopID();
+        }
+		ImGui::ColorEdit3( "Colour", glm::value_ptr(m_object_colors[current_col]) );
 
 /*
 		// For convenience, you can uncomment this to show ImGui's massive
